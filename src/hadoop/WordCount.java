@@ -1,83 +1,95 @@
 package hadoop;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.regex.Pattern;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class WordCount {
-	private static Set<String> uniqueWord;
-	//Mapper class 
-	   public static class Map extends MapReduceBase implements 
-	   Mapper<LongWritable ,/*Input key Type */ 
-	   Text,                /*Input value Type*/ 
-	   Text,                /*Output key Type*/ 
-	   IntWritable>        /*Output value Type*/ 
-	   { 
-	      
-	      //Map function 
-	      public void map(LongWritable key, Text value, 
-	      OutputCollector<Text, IntWritable> output,   
-	      Reporter reporter) throws IOException 
-	      { 
-	          
-	      } 
-	   } 
-	   
-	   
-	   //Reducer class 
-	   public static class Reduce extends MapReduceBase implements 
-	   Reducer< Text, IntWritable, Text, IntWritable > 
-	   {  
-	   
-	      //Reduce function 
-	      public void reduce( Text key, Iterator <IntWritable> values, 
-	         OutputCollector<Text, IntWritable> output, Reporter reporter) throws IOException 
-	         { 
-	            
-	 
-	         } 
-	   }  
+	private static final Pattern DISREGARD = Pattern.compile("[(){},.;!+\"?<>%]");
+	private final static IntWritable one = new IntWritable(1);
+	private static String elements[] = { "education", "politics", "sports", "agriculture" }; 
+	private static HashSet<String> uniqueWord = new HashSet<String>(Arrays.asList(elements));
+
+
+	public static class Map extends Mapper<LongWritable,Text,Text,IntWritable> {
+
+		private Text word = new Text();
+		private Text filenameKey;
+		@Override
+
+		protected void setup(Context context) throws IOException,
+		InterruptedException {
+			InputSplit split = context.getInputSplit();
+			Path path = ((FileSplit) split).getPath();
+			filenameKey = new Text(path.toString());
+		}
+
+		public void map(LongWritable key, Text value, Context context) throws IOException,InterruptedException {
+
+			String line = value.toString();
+			StringTokenizer tokenizer = new StringTokenizer(line);
+			while (tokenizer.hasMoreTokens()) {
+				value.set(tokenizer.nextToken());
+				String cleanWord = DISREGARD.matcher(word.toString()).replaceAll("");
+				if(uniqueWord.contains(cleanWord)) {
+					context.write(new Text(cleanWord), one);
+				}  
+
+			}
+		}
+	}
+
+	public static class Reduce extends Reducer<Text,IntWritable,Text,IntWritable> {
+		private IntWritable result = new IntWritable();
+
+		public void reduce(Text key, Iterable<IntWritable> values,Context context) throws IOException,InterruptedException {
+
+			int sum=0;
+			for(IntWritable x: values)
+			{
+				sum+=x.get();
+			}
+			result.set(sum);
+			context.write(key, result);
+		}
+	}
+
 
 	public static void main(String[] args) throws IOException {
-		uniqueWord = new HashSet<>();
-		uniqueWord.add("education");
-		uniqueWord.add("politics");
-		uniqueWord.add("sports");
-		uniqueWord.add("agriculture");
-		
+
 		System.out.println("Hello World");
-		JobConf conf = new JobConf(WordCount.class); 
+		Configuration conf= new Configuration();
+		Job job = new Job(conf,"My Word Count Program");
+		job.setJarByClass(WordCount.class);
+		job.setMapperClass(Map.class);
+		job.setReducerClass(Reduce.class);
+		job.setOutputKeyClass(Text.class);
 
-		conf.setJobName("max_eletricityunits"); 
-		conf.setOutputKeyClass(Text.class);
-		conf.setOutputValueClass(IntWritable.class); 
-		conf.setMapperClass(Map.class); 
-		conf.setCombinerClass(Reduce.class); 
-		conf.setReducerClass(Reduce.class); 
-		conf.setInputFormat(TextInputFormat.class); 
-		conf.setOutputFormat(TextOutputFormat.class); 
+		job.setOutputValueClass(IntWritable.class);
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
+		Path outputPath = new Path(args[1]);
 
-		FileInputFormat.setInputPaths(conf, new Path(args[0])); 
-		FileOutputFormat.setOutputPath(conf, new Path(args[1])); 
-
-		JobClient.runJob(conf); 
+		//Configuring the input/output path from the filesystem into the job
+		FileInputFormat.addInputPath(job, new Path(args[0]));
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
 	}
 
