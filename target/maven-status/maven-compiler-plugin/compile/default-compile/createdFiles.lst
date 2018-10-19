@@ -1,0 +1,5 @@
+hadoop\WordCount$Mapper2.class
+hadoop\WordCount.class
+hadoop\WordCount$TokenizerMapper.class
+hadoop\WordCount$IntSumReducer.class
+hadoop\WordCount$Reducer2.class
