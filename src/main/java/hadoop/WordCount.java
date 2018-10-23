@@ -50,22 +50,22 @@ public class WordCount {
 	public static class IntSumReducer extends Reducer<Text, Text, Text, Text> {
 
 		public void reduce(Text key, Iterable<Text> values,Context context) throws IOException, InterruptedException {
-			Map<String, Integer> countMap = new HashMap<String, Integer>();
+			Map<String, Integer> wordCountMap = new HashMap<String, Integer>();
 
 			for (Text val : values) {
-				String currWord = val.toString();
-				if (!countMap.containsKey(currWord)) {
-					countMap.put(currWord, 1);
+				String presentWord = val.toString();
+				if (!wordCountMap.containsKey(presentWord)) {
+					wordCountMap.put(presentWord, 1);
 				} else {
-					countMap.put(currWord, countMap.get(currWord) + 1);
+					wordCountMap.put(presentWord, wordCountMap.get(presentWord) + 1);
 				}
 			}
 
 			int max = 0;
 			String mostFreqWord = null;
-			for (String uniqueWord : countMap.keySet()) {
-				if (countMap.get(uniqueWord) > max) {
-					max = countMap.get(uniqueWord);
+			for (String uniqueWord : wordCountMap.keySet()) {
+				if (wordCountMap.get(uniqueWord) > max) {
+					max = wordCountMap.get(uniqueWord);
 					mostFreqWord = uniqueWord;
 				}
 			}
