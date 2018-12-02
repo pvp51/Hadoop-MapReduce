@@ -93,3 +93,7 @@ hdfs dfs -rm hdfs://iop-bi-master.imdemocloud.com:8020/Output2/*
 hdfs dfs -rmdir hdfs://iop-bi-master.imdemocloud.com:8020/Output2
 
 -------------------------------------------------------------
+
+
+ssh -i ~/.ssh/cs643-proj1.pem bitnami@ec2-18-224-64-157.us-east-2.compute.amazonaws.com
+ssh -i ~/.ssh/cs643-proj1.pem bitnami@ec2-18-224-64-157.us-east-2.compute.amazonaws.com
